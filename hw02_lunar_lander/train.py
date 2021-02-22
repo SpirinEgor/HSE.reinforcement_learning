@@ -21,7 +21,6 @@ LEARNING_RATE = 5e-4
 START_EPS = 0.3
 HIDDEN_DIM = 1024
 N_LAYERS = 5
-BUFFER_SIZE = INITIAL_STEPS
 GRADIENT_CLIP = 5
 
 
@@ -31,11 +30,11 @@ class DQN:
         self._device = device
 
         self._position = 0
-        self._state_buffer = torch.empty((BUFFER_SIZE, state_dim), dtype=torch.float, device=self._device)
-        self._next_state_buffer = torch.empty((BUFFER_SIZE, state_dim), dtype=torch.float, device=self._device)
-        self._action_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.long, device=self._device)
-        self._reward_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.float, device=self._device)
-        self._done_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.bool, device=self._device)
+        self._state_buffer = torch.empty((INITIAL_STEPS, state_dim), dtype=torch.float, device=self._device)
+        self._next_state_buffer = torch.empty((INITIAL_STEPS, state_dim), dtype=torch.float, device=self._device)
+        self._action_buffer = torch.empty((INITIAL_STEPS, 1), dtype=torch.long, device=self._device)
+        self._reward_buffer = torch.empty((INITIAL_STEPS, 1), dtype=torch.float, device=self._device)
+        self._done_buffer = torch.empty((INITIAL_STEPS, 1), dtype=torch.bool, device=self._device)
 
         modules = [nn.Linear(state_dim, HIDDEN_DIM), nn.LeakyReLU()]
         for _ in range(N_LAYERS):
@@ -53,11 +52,11 @@ class DQN:
         self._action_buffer[self._position] = torch.tensor(action, device=self._device)
         self._reward_buffer[self._position] = reward
         self._done_buffer[self._position] = done
-        self._position = (self._position + 1) % BUFFER_SIZE
+        self._position = (self._position + 1) % INITIAL_STEPS
 
     def sample_batch(self):
         # Sample batch from a replay buffer.
-        batch_idx = np.random.choice(BUFFER_SIZE, BATCH_SIZE, replace=False)
+        batch_idx = np.random.choice(INITIAL_STEPS, BATCH_SIZE, replace=False)
         return self._state_buffer[batch_idx], self._action_buffer[batch_idx], self._next_state_buffer[batch_idx], \
             self._reward_buffer[batch_idx], self._done_buffer[batch_idx]
 
@@ -124,7 +123,7 @@ def evaluate_policy(agent, episodes=5):
 
 
 def main(device):
-    print(f"Buffer size: {BUFFER_SIZE}\n"
+    print(f"Buffer size: {INITIAL_STEPS}\n"
           f"Batch size: {BATCH_SIZE}\n"
           f"Learning rate: {LEARNING_RATE}\n"
           f"Hidden dim: {HIDDEN_DIM}\n"
