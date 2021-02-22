@@ -1,6 +1,5 @@
 import random
 from copy import deepcopy
-from tkinter import HIDDEN
 
 import numpy as np
 import torch
@@ -24,34 +23,34 @@ HIDDEN_DIM = 1024
 N_LAYERS = 5
 BUFFER_SIZE = INITIAL_STEPS
 GRADIENT_CLIP = 5
-DEVICE = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 class DQN:
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, device):
         self.steps = 0  # Do not change
+        self._device = device
 
         self._position = 0
-        self._state_buffer = torch.empty((BUFFER_SIZE, state_dim), dtype=torch.float, device=DEVICE)
-        self._next_state_buffer = torch.empty((BUFFER_SIZE, state_dim), dtype=torch.float, device=DEVICE)
-        self._action_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.long, device=DEVICE)
-        self._reward_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.float, device=DEVICE)
-        self._done_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.bool, device=DEVICE)
+        self._state_buffer = torch.empty((BUFFER_SIZE, state_dim), dtype=torch.float, device=self._device)
+        self._next_state_buffer = torch.empty((BUFFER_SIZE, state_dim), dtype=torch.float, device=self._device)
+        self._action_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.long, device=self._device)
+        self._reward_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.float, device=self._device)
+        self._done_buffer = torch.empty((BUFFER_SIZE, 1), dtype=torch.bool, device=self._device)
 
         modules = [nn.Linear(state_dim, HIDDEN_DIM), nn.LeakyReLU()]
         for _ in range(N_LAYERS):
             modules += [nn.Linear(HIDDEN_DIM, HIDDEN_DIM), nn.LeakyReLU()]
         modules += [nn.Linear(HIDDEN_DIM, action_dim)]
-        self.model = nn.Sequential(*modules).to(DEVICE)  # Torch model
+        self.model = nn.Sequential(*modules).to(self._device)  # Torch model
         self._target_model = deepcopy(self.model)
         self._optimizer = Adam(self.model.parameters(), LEARNING_RATE)
 
     def consume_transition(self, transition):
         # Add transition to a replay buffer.
         state, action, next_state, reward, done = transition
-        self._state_buffer[self._position] = torch.tensor(state, device=DEVICE)
-        self._next_state_buffer[self._position] = torch.tensor(next_state, device=DEVICE)
-        self._action_buffer[self._position] = torch.tensor(action, device=DEVICE)
+        self._state_buffer[self._position] = torch.tensor(state, device=self._device)
+        self._next_state_buffer[self._position] = torch.tensor(next_state, device=self._device)
+        self._action_buffer[self._position] = action
         self._reward_buffer[self._position] = reward
         self._done_buffer[self._position] = done
         self._position = (self._position + 1) % BUFFER_SIZE
@@ -92,7 +91,7 @@ class DQN:
     def act(self, state, target=False):
         # Compute an action. Do not forget to turn state to a Tensor and then turn an action to a numpy array.
         with torch.no_grad():
-            logits = self.model(torch.tensor(state, device=DEVICE))
+            logits = self.model(torch.tensor(state, device=self._device))
             return logits.argmax(-1).numpy()
 
     def update(self, transition):
@@ -124,14 +123,14 @@ def evaluate_policy(agent, episodes=5):
     return returns
 
 
-def main():
+def main(device):
     env = make("LunarLander-v2")
     env.seed(SEED)
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
 
-    dqn = DQN(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n)
+    dqn = DQN(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, device=device)
     eps = np.linspace(START_EPS, 0, TRANSITIONS)
     state = env.reset()
 
@@ -169,4 +168,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
