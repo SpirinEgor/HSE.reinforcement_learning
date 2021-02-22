@@ -92,7 +92,7 @@ class DQN:
         # Compute an action. Do not forget to turn state to a Tensor and then turn an action to a numpy array.
         with torch.no_grad():
             logits = self.model(torch.tensor(state, device=self._device))
-            return logits.argmax(-1).numpy()
+            return logits.argmax(-1).cpu().numpy()
 
     def update(self, transition):
         # You don't need to change this
