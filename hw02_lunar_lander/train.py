@@ -126,6 +126,7 @@ def evaluate_policy(agent, episodes=5):
 def main(device):
     print(f"Buffer size: {BUFFER_SIZE}\n"
           f"Batch size: {BATCH_SIZE}\n"
+          f"Learning rate: {LEARNING_RATE}\n"
           f"Hidden dim: {HIDDEN_DIM}\n"
           f"Number of layers: {N_LAYERS}\n"
           f"Transitions: {TRANSITIONS}")
