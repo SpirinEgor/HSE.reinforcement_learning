@@ -15,7 +15,7 @@ INITIAL_STEPS = 4096
 TRANSITIONS = 500_000
 STEPS_PER_UPDATE = 4
 STEPS_PER_TARGET_UPDATE = STEPS_PER_UPDATE * 1000
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 LEARNING_RATE = 5e-4
 
 START_EPS = 0.3
@@ -50,7 +50,7 @@ class DQN:
         state, action, next_state, reward, done = transition
         self._state_buffer[self._position] = torch.tensor(state, device=self._device)
         self._next_state_buffer[self._position] = torch.tensor(next_state, device=self._device)
-        self._action_buffer[self._position] = action
+        self._action_buffer[self._position] = torch.tensor(action, device=self._device)
         self._reward_buffer[self._position] = reward
         self._done_buffer[self._position] = done
         self._position = (self._position + 1) % BUFFER_SIZE
@@ -124,6 +124,12 @@ def evaluate_policy(agent, episodes=5):
 
 
 def main(device):
+    print(f"Buffer size: {BUFFER_SIZE}\n"
+          f"Batch size: {BATCH_SIZE}\n"
+          f"Hidden dim: {HIDDEN_DIM}\n"
+          f"Number of layers: {N_LAYERS}\n"
+          f"Transitions: {TRANSITIONS}")
+
     env = make("LunarLander-v2")
     env.seed(SEED)
     random.seed(SEED)
