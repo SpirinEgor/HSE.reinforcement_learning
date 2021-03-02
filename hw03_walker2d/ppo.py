@@ -1,3 +1,5 @@
+import pickle
+
 import torch
 from torch import nn
 from torch.optim import Adam
@@ -14,6 +16,8 @@ class PPO:
         print(f"state dim: {state_dim}, action_dim: {action_dim}")
         self._device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self._config = config
+        self._state_dim = state_dim
+        self._action_dim = action_dim
 
         self.actor = Actor(state_dim, action_dim, config).to(self._device)
         self.critic = Critic(state_dim, config).to(self._device)
@@ -79,5 +83,12 @@ class PPO:
             prob = torch.exp(distribution.log_prob(pure_action).sum(-1))
         return action[0].cpu().numpy(), pure_action[0].cpu().numpy(), prob.cpu().item()
 
-    def save(self):
-        torch.save(self.actor, "agent.pkl")
+    def save(self, filename: str):
+        state = {
+            "init_params": {
+                "state_dim": self._state_dim, "action_dim": self._action_dim, "config": self._config
+            },
+            "state_dict": self.actor.state_dict()
+        }
+        with open(filename, "wb") as out_file:
+            pickle.dump(state, out_file)

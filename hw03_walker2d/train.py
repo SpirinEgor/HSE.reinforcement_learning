@@ -1,10 +1,15 @@
+import sys
+from os.path import dirname
 import random
-from dataclasses import asdict, astuple
+from dataclasses import asdict
 
 import torch
 from numpy import mean, std
 from pybullet_envs import make
 from tqdm.auto import tqdm
+
+
+sys.path.append(dirname(__file__))
 
 from config import Config
 from ppo import PPO
@@ -99,9 +104,10 @@ class Trainer:
                       f"Reward std: {cur_std}, "
                       f"Episodes: {episodes_sampled}, "
                       f"Steps: {steps_sampled}")
-                if best_score is None or cur_mean - cur_std > best_score:
-                    ppo.save()
-                    best_score = cur_mean - cur_std
+                if best_score is None or cur_mean > best_score:
+                    ppo.save("agent_best.pkl")
+                    best_score = cur_mean
+                ppo.save("agent_last.pkl")
 
 
 if __name__ == "__main__":
