@@ -15,6 +15,7 @@ class PPO:
     def __init__(self, state_dim: int, action_dim: int, config: Config):
         print(f"state dim: {state_dim}, action_dim: {action_dim}")
         self._device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        print(f"Use device: {self._device}")
         self._config = config
         self._state_dim = state_dim
         self._action_dim = action_dim
