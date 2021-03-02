@@ -57,7 +57,7 @@ class PPO:
                     torch.clip(policy_ratio, 1 - self._config.clip, 1 + self._config.clip) * batch_advantage
                 )
             )
-            loss_clip += self._config.entropy_cf * entropy
+            loss_clip -= self._config.entropy_cf * entropy
 
             self.actor_optimizer.zero_grad()
             loss_clip.backward()
