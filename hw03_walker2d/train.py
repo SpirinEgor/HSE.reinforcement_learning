@@ -1,11 +1,13 @@
 import random
+from dataclasses import asdict, astuple
 
-import numpy as np
 import torch
-from gym import make
+from numpy import mean, std
+from pybullet_envs import make
+from tqdm.auto import tqdm
 
-from hw03_walker2d.config import Config
-from hw03_walker2d.ppo import PPO
+from config import Config
+from ppo import PPO
 
 
 class Trainer:
@@ -15,7 +17,6 @@ class Trainer:
     def seed_everything(self, env):
         env.seed(self._config.seed)
         random.seed(self._config.seed)
-        np.random.seed(self._config.seed)
         torch.manual_seed(self._config.seed)
 
     def compute_lambda_returns_and_gae(self, trajectory):
@@ -38,6 +39,18 @@ class Trainer:
             for (s, a, _, p, _), v, adv in zip(trajectory, reversed(lambda_returns), reversed(gae))
         ]
 
+    def sample_episode(self, env, agent: PPO):
+        s = env.reset()
+        d = False
+        trajectory = []
+        while not d:
+            a, pa, p = agent.act(s)
+            v = agent.get_value(s)
+            ns, r, d, _ = env.step(a)
+            trajectory.append((s, pa, r, p, v))
+            s = ns
+        return self.compute_lambda_returns_and_gae(trajectory)
+
     def evaluate_policy(self, env, agent: PPO):
         self.seed_everything(env)
         returns = []
@@ -52,28 +65,19 @@ class Trainer:
             returns.append(total_reward)
         return returns
 
-    def sample_episode(self, env, agent: PPO):
-        s = env.reset()
-        d = False
-        trajectory = []
-        while not d:
-            a, pa, p = agent.act(s)
-            v = agent.get_value(s)
-            ns, r, d, _ = env.step(a)
-            trajectory.append((s, pa, r, p, v))
-            s = ns
-        return self.compute_lambda_returns_and_gae(trajectory)
-
     def train(self):
+        str_config = "\n".join(f"{key}: {value}" for key, value in asdict(self._config).items())
+        print(f"Train config:\n{str_config}")
+
         env = make(self._config.env_name)
+        env.reset()
         self.seed_everything(env)
         ppo = PPO(state_dim=env.observation_space.shape[0], action_dim=env.action_space.shape[0], config=self._config)
-        state = env.reset()
         episodes_sampled = 0
         steps_sampled = 0
 
         best_score = None
-        for i in range(self._config.iterations):
+        for i in tqdm(range(self._config.iterations), total=self._config.iterations):
             trajectories = []
             steps_cnt = 0
 
@@ -89,15 +93,15 @@ class Trainer:
 
             if (i + 1) % (self._config.iterations // 100) == 0:
                 rewards = self.evaluate_policy(env, ppo)
-                mean, std = np.mean(rewards), np.std(rewards)
-                print(f"Step: {i + 1},"
-                      f"Reward mean: {mean},"
-                      f"Reward std: {std},"
-                      f"Episodes: {episodes_sampled},"
+                cur_mean, cur_std = mean(rewards), std(rewards)
+                print(f"Step: {i + 1}, "
+                      f"Reward mean: {cur_mean}, "
+                      f"Reward std: {cur_std}, "
+                      f"Episodes: {episodes_sampled}, "
                       f"Steps: {steps_sampled}")
-                if best_score is None or mean - std > best_score:
+                if best_score is None or cur_mean - cur_std > best_score:
                     ppo.save()
-                    best_score = mean - std
+                    best_score = cur_mean - cur_std
 
 
 if __name__ == "__main__":

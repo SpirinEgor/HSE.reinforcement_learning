@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.distributions import Normal
 
-from hw03_walker2d.config import Config
+from config import Config
 
 
 class Actor(nn.Module):
@@ -15,20 +15,22 @@ class Actor(nn.Module):
         self.model = nn.Sequential(*modules)
         self.sigma = nn.Parameter(torch.zeros(action_dim), requires_grad=True)
 
-    def compute_proba(self, state, action):
-        # Returns probability of action according to current policy and distribution of actions
-        # (use it to compute entropy loss)
+    def get_distribution(self, state):
         mu = self.model(state)
         sigma = torch.exp(self.sigma).unsqueeze(0).expand_as(mu)
         distribution = Normal(mu, sigma)
+        return distribution
+
+    def compute_proba(self, state, action):
+        # Returns probability of action according to current policy and distribution of actions
+        # (use it to compute entropy loss)
+        distribution = self.get_distribution(state)
         return torch.exp(distribution.log_prob(action).sum(-1)), distribution
 
     def forward(self, state):
         # Returns an action, not-transformed action and distribution
         # Remember: agent is not deterministic, sample actions from distribution (e.g. Gaussian)
-        mu = self.model(state)
-        sigma = torch.exp(self.sigma).unsqueeze(0).expand_as(mu)
-        distribution = Normal(mu, sigma)
+        distribution = self.get_distribution(state)
         pure_action = distribution.sample()
         action = torch.tanh(pure_action)
         return action, pure_action, distribution
