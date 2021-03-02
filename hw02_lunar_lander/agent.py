@@ -2,7 +2,7 @@ import torch
 
 
 class Agent:
-    def __init__(self, path="agent.pkl"):
+    def __init__(self, path="agent_goose.pkl"):
         self._device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.model = torch.load(__file__[:-8] + path).to(self._device)
 

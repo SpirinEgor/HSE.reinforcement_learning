@@ -91,5 +91,4 @@ class PPO:
             },
             "state_dict": self.actor.state_dict()
         }
-        with open(filename, "wb") as out_file:
-            pickle.dump(state, out_file)
+        torch.save(state, filename)

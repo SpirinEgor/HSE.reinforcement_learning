@@ -9,11 +9,11 @@ class Config:
     gamma: float = 0.99
 
     actor_lr: float = 3e-4
-    actor_hidden_dim: int = 128
+    actor_hidden_dim: int = 256
     actor_hidden_layers: int = 1
 
     critic_lr: float = 2e-4
-    critic_hidden_dim: int = 128
+    critic_hidden_dim: int = 256
     critic_hidden_layers: int = 1
 
     clip: float = 0.2
